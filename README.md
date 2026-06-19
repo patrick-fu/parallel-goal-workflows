@@ -7,6 +7,54 @@ It helps a lead agent hand workflow ownership to an orchestrator, stay out of
 task-level execution, and receive an acceptance-ready report instead of every
 intermediate detail.
 
+## Install
+
+```bash
+npx skills add patrick-fu/parallel-goal-workflows
+```
+
+Confirm the install:
+
+```bash
+test -f ~/.agents/skills/parallel-goal-workflows/SKILL.md
+```
+
+Update later:
+
+```bash
+npx skills update
+```
+
+## Quick Use
+
+This skill is intentionally high-overhead. Name it explicitly when you want the
+workflow boundary:
+
+```text
+Use parallel-goal-workflows for this task. The Lead Agent should start an
+Orchestrator, wait instead of doing task-level work, and report back only after
+the Orchestrator returns an acceptance-ready result.
+```
+
+## Minimal Orchestrator Goal Packet
+
+```text
+/goal Orchestrate this delegated workflow to completion and return an
+acceptance-ready report.
+
+Context:
+[User goal, constraints, relevant project rules, and quality bar.]
+
+Deliverable:
+[Worker results, independent review result, acceptance or verification result,
+repair loop if any, final judgment, remaining risks, and a concise report the
+Lead can relay.]
+
+Pause if:
+[Credentials, destructive actions, external approval, user judgment, or a
+repeated blocker is required.]
+```
+
 ## What It Does
 
 This skill turns a broad delegated task into an orchestrator-owned workflow:
@@ -194,21 +242,17 @@ where available and multi-level subagents when nested delegation is needed.
   claude --version
   ```
 
-## Install
+## Repository Layout
 
-```bash
-npx skills add patrick-fu/parallel-goal-workflows
+This standalone repository is a single-skill package with the skill body and
+references flattened at the repository root:
+
+```text
+README.md
+README.zh-CN.md
+SKILL.md
+references/
 ```
-
-To update later:
-
-```bash
-npx skills update
-```
-
-## Included Skill
-
-- `parallel-goal-workflows`
 
 ## More Skills
 
