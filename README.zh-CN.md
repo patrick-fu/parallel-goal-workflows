@@ -69,55 +69,70 @@ flowchart LR
 
 Orchestrator 可以根据任务选择不同工作流形态。下面这些是模式，不是脚本；任务需要时可以组合使用。
 
+### Fan-out / Fan-in
+
 ```mermaid
-flowchart TB
-  subgraph F["Fan-out / Fan-in"]
-    F0["Orchestrator"] --> F1["Worker A goal"]
-    F0 --> F2["Worker B goal"]
-    F0 --> F3["Worker C goal"]
-    F1 --> F4["Synthesis goal"]
-    F2 --> F4
-    F3 --> F4
-    F4 --> F5["Review + Acceptance"]
-  end
+flowchart LR
+  O["Orchestrator"] --> A["Worker A goal"]
+  O --> B["Worker B goal"]
+  O --> C["Worker C goal"]
+  A --> S["Synthesis goal"]
+  B --> S
+  C --> S
+  S --> R["Review + Acceptance"]
+```
 
-  subgraph M["Map-reduce"]
-    M0["Orchestrator"] --> M1["Map slice A"]
-    M0 --> M2["Map slice B"]
-    M0 --> M3["Map slice C"]
-    M1 --> M4["Reduce / Synthesis"]
-    M2 --> M4
-    M3 --> M4
-    M4 --> M5["交叉检查"]
-  end
+### Map-reduce
 
-  subgraph P["Pipeline"]
-    P0["Research goal"] --> P1["Modeling / Design goal"]
-    P1 --> P2["Implementation goal"]
-    P2 --> P3["Review goal"]
-    P3 --> P4["Acceptance goal"]
-  end
+```mermaid
+flowchart LR
+  O["Orchestrator"] --> A["Map slice A"]
+  O --> B["Map slice B"]
+  O --> C["Map slice C"]
+  A --> S["Reduce / Synthesis"]
+  B --> S
+  C --> S
+  S --> X["交叉检查"]
+```
 
-  subgraph R["Rolling waves"]
-    R0["第一波：宽探索"] --> R1["Orchestrator 收窄范围"]
-    R1 --> R2["第二波：定向执行"]
-    R2 --> R3["可选 repair / verification 波次"]
-    R3 --> R4["可验收报告"]
-  end
+### Pipeline
 
-  subgraph N["Nested delegation"]
-    N0["Orchestrator"] --> N1["Worker goal"]
-    N1 --> N2["Sub-worker A goal"]
-    N1 --> N3["Sub-worker B goal"]
-    N2 --> N4["Worker synthesis"]
-    N3 --> N4
-    N4 --> N5["Review"]
-  end
+```mermaid
+flowchart LR
+  A["Research goal"] --> B["Modeling / Design goal"]
+  B --> C["Implementation goal"]
+  C --> D["Review goal"]
+  D --> E["Acceptance goal"]
+```
 
-  subgraph MIN["Minimal orchestration"]
-    MIN0["Orchestrator"] --> MIN1["无需下游 Worker"]
-    MIN1 --> MIN2["验证 / 报告"]
-  end
+### Rolling waves
+
+```mermaid
+flowchart LR
+  A["第一波：<br/>宽探索"] --> B["Orchestrator<br/>收窄范围"]
+  B --> C["第二波：<br/>定向执行"]
+  C --> D["可选 repair /<br/>verification 波次"]
+  D --> E["可验收报告"]
+```
+
+### Nested delegation
+
+```mermaid
+flowchart LR
+  O["Orchestrator"] --> W["Worker goal"]
+  W --> A["Sub-worker A goal"]
+  W --> B["Sub-worker B goal"]
+  A --> S["Worker synthesis"]
+  B --> S
+  S --> R["Review"]
+```
+
+### Minimal orchestration
+
+```mermaid
+flowchart LR
+  O["Orchestrator"] --> N["无需下游<br/>Worker"]
+  N --> V["验证 / 报告"]
 ```
 
 ## Review 和 Repair Loop
