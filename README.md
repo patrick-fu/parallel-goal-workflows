@@ -62,15 +62,20 @@ it. When a runtime does not expose per-subagent Goal mode, put the same goal
 packet in the delegation message so the subagent still works from an explicit
 completion contract.
 
-## Workflow Shape
+## Workflow Shapes
+
+The orchestrator chooses the shape that fits the task. These diagrams are
+coarse workflow patterns, not scripts.
+
+### Orchestrated Review
 
 ```mermaid
 flowchart LR
   User["User"] --> Lead["Lead Agent<br/>conversation boundary"]
   Lead --> Orchestrator["Orchestrator<br/>workflow owner"]
-  Orchestrator --> Workers["Worker / Research / Evidence"]
-  Orchestrator --> Review["Independent Review"]
-  Review --> Decision{"Review passes?"}
+  Orchestrator --> Worker["Worker / research goal"]
+  Worker --> Review["Independent review"]
+  Review --> Decision{"Good enough?"}
   Decision -- "No" --> Repair["Repair Agent"]
   Repair --> Review
   Decision -- "Yes" --> Acceptance["Acceptance / Verification"]
@@ -79,12 +84,7 @@ flowchart LR
   Lead --> User
 ```
 
-## Workflow Families
-
-The orchestrator can choose different workflow shapes. These are patterns, not
-scripts; combine them when the task needs it.
-
-### Fan-out / Fan-in
+### Parallel Synthesis
 
 ```mermaid
 flowchart LR
@@ -94,40 +94,23 @@ flowchart LR
   A --> S["Synthesis goal"]
   B --> S
   C --> S
-  S --> R["Review + acceptance"]
-```
-
-### Map-reduce
-
-```mermaid
-flowchart LR
-  O["Orchestrator"] --> A["Map slice A"]
-  O --> B["Map slice B"]
-  O --> C["Map slice C"]
-  A --> S["Reduce / synthesis"]
-  B --> S
-  C --> S
-  S --> X["Cross-check"]
-```
-
-### Pipeline
-
-```mermaid
-flowchart LR
-  A["Research goal"] --> B["Modeling / design goal"]
-  B --> C["Implementation goal"]
-  C --> D["Review goal"]
-  D --> E["Acceptance goal"]
+  S --> Decision{"Conflict or gap?"}
+  Decision -- "Yes" --> Followup["Targeted follow-up goal"]
+  Followup --> S
+  Decision -- "No" --> Acceptance["Acceptance / report"]
 ```
 
 ### Rolling waves
 
 ```mermaid
 flowchart LR
-  A["Wave 1:<br/>broad exploration"] --> B["Orchestrator<br/>narrows scope"]
-  B --> C["Wave 2:<br/>targeted work"]
-  C --> D["Optional repair /<br/>verification wave"]
-  D --> E["Acceptance report"]
+  O["Orchestrator"] --> Explore["Wave 1:<br/>broad exploration"]
+  Explore --> Decision{"Enough signal?"}
+  Decision -- "No" --> Narrow["Next wave:<br/>narrower goals"]
+  Narrow --> Decision
+  Decision -- "Yes" --> Focus["Focused worker goals"]
+  Focus --> Review["Review / acceptance"]
+  Review --> Report["Final report"]
 ```
 
 ### Nested delegation
@@ -135,49 +118,15 @@ flowchart LR
 ```mermaid
 flowchart LR
   O["Orchestrator"] --> W["Worker goal"]
-  W --> A["Sub-worker A goal"]
-  W --> B["Sub-worker B goal"]
+  W --> Decision{"Needs deeper help?"}
+  Decision -- "Yes" --> A["Sub-worker A goal"]
+  Decision -- "Yes" --> B["Sub-worker B goal"]
   A --> S["Worker synthesis"]
   B --> S
-  S --> R["Review"]
-```
-
-### Minimal orchestration
-
-```mermaid
-flowchart LR
-  O["Orchestrator"] --> N["No downstream<br/>worker needed"]
-  N --> V["Validation / report"]
-```
-
-## Review And Repair Loop
-
-```mermaid
-sequenceDiagram
-  participant User
-  participant Lead
-  participant Orchestrator
-  participant Worker
-  participant Review
-  participant Repair
-  participant Acceptance
-  User->>Lead: Ask for delegated work
-  Lead->>Orchestrator: Orchestrator goal and wait
-  Orchestrator->>Worker: Worker goal: produce result and evidence
-  Worker-->>Orchestrator: Result
-  Orchestrator->>Review: Review goal: independent check
-  alt Needs repair
-    Review-->>Orchestrator: Findings
-    Orchestrator->>Repair: Repair goal: narrow fix
-    Repair-->>Orchestrator: Repaired result
-    Orchestrator->>Review: Re-check goal
-  else Passes review
-    Review-->>Orchestrator: Pass
-  end
-  Orchestrator->>Acceptance: Acceptance goal: verify user outcome
-  Acceptance-->>Orchestrator: Acceptance signal
-  Orchestrator-->>Lead: Acceptance-ready report
-  Lead-->>User: Plain handoff
+  Decision -- "No" --> Direct["Worker result"]
+  S --> Review["Review / acceptance"]
+  Direct --> Review
+  Review --> Report["Final report"]
 ```
 
 ## Why It Helps
