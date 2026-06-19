@@ -16,6 +16,8 @@ This skill turns a broad delegated task into an orchestrator-owned workflow:
   repair routing;
 - Worker, Review, Acceptance, Repair, and Synthesis agents each receive focused
   goals;
+- every spawned agent uses either native Goal mode, when the host exposes it,
+  or a goal-shaped delegation packet with a clear completion condition;
 - the Lead waits with callback-style patience instead of polling or taking work
   back;
 - worker agents may delegate further when the host environment supports nested
@@ -27,8 +29,10 @@ room for the workflow owner to adapt.
 
 ## When To Use It
 
-Use this skill when a task benefits from delegated agents but you do not want
-the main conversation to become the coordination workspace.
+Use this skill when a task benefits from deliberate, high-overhead delegation
+and you do not want the main conversation to become the coordination workspace.
+It is not the default pattern for ordinary coding, research, review, simple
+parallel exploration, or generic goal decomposition.
 
 Good fits include:
 
@@ -39,6 +43,24 @@ Good fits include:
 - review and repair loops where the main context should only receive the final
   decision and evidence;
 - nested subagent workflows where a worker may need its own workers.
+
+## Goal Discipline
+
+This skill is goal-first. Every participating agent should start from a goal,
+not a vague chore:
+
+- Lead goal: preserve the conversation boundary and wait for the orchestrator's
+  acceptance-ready report.
+- Orchestrator goal: own decomposition, scheduling, review, acceptance, repair,
+  and final reporting.
+- Downstream goals: give each Worker, Review, Acceptance, Repair, and Synthesis
+  agent one concrete outcome, expected evidence, boundaries, and pause
+  conditions.
+
+When the host exposes native Goal mode for the relevant session or thread, use
+it. When a runtime does not expose per-subagent Goal mode, put the same goal
+packet in the delegation message so the subagent still works from an explicit
+completion contract.
 
 ## Workflow Shape
 
@@ -57,6 +79,62 @@ flowchart LR
   Lead --> User
 ```
 
+## Workflow Families
+
+The orchestrator can choose different workflow shapes. These are patterns, not
+scripts; combine them when the task needs it.
+
+```mermaid
+flowchart TB
+  subgraph F["Fan-out / Fan-in"]
+    F0["Orchestrator"] --> F1["Worker A goal"]
+    F0 --> F2["Worker B goal"]
+    F0 --> F3["Worker C goal"]
+    F1 --> F4["Synthesis goal"]
+    F2 --> F4
+    F3 --> F4
+    F4 --> F5["Review + acceptance"]
+  end
+
+  subgraph M["Map-reduce"]
+    M0["Orchestrator"] --> M1["Map slice A"]
+    M0 --> M2["Map slice B"]
+    M0 --> M3["Map slice C"]
+    M1 --> M4["Reduce / synthesis"]
+    M2 --> M4
+    M3 --> M4
+    M4 --> M5["Cross-check"]
+  end
+
+  subgraph P["Pipeline"]
+    P0["Research goal"] --> P1["Modeling / design goal"]
+    P1 --> P2["Implementation goal"]
+    P2 --> P3["Review goal"]
+    P3 --> P4["Acceptance goal"]
+  end
+
+  subgraph R["Rolling waves"]
+    R0["Wave 1: broad exploration"] --> R1["Orchestrator narrows scope"]
+    R1 --> R2["Wave 2: targeted work"]
+    R2 --> R3["Optional repair / verification wave"]
+    R3 --> R4["Acceptance report"]
+  end
+
+  subgraph N["Nested delegation"]
+    N0["Orchestrator"] --> N1["Worker goal"]
+    N1 --> N2["Sub-worker A goal"]
+    N1 --> N3["Sub-worker B goal"]
+    N2 --> N4["Worker synthesis"]
+    N3 --> N4
+    N4 --> N5["Review"]
+  end
+
+  subgraph MIN["Minimal orchestration"]
+    MIN0["Orchestrator"] --> MIN1["No downstream worker needed"]
+    MIN1 --> MIN2["Validation / report"]
+  end
+```
+
 ## Review And Repair Loop
 
 ```mermaid
@@ -66,21 +144,22 @@ sequenceDiagram
   participant Orchestrator
   participant Worker
   participant Review
+  participant Repair
   participant Acceptance
   User->>Lead: Ask for delegated work
-  Lead->>Orchestrator: Delegate goal and wait
-  Orchestrator->>Worker: Produce result and evidence
+  Lead->>Orchestrator: Orchestrator goal and wait
+  Orchestrator->>Worker: Worker goal: produce result and evidence
   Worker-->>Orchestrator: Result
-  Orchestrator->>Review: Independent review
+  Orchestrator->>Review: Review goal: independent check
   alt Needs repair
     Review-->>Orchestrator: Findings
-    Orchestrator->>Worker: Narrow repair goal
-    Worker-->>Orchestrator: Repaired result
-    Orchestrator->>Review: Re-check
+    Orchestrator->>Repair: Repair goal: narrow fix
+    Repair-->>Orchestrator: Repaired result
+    Orchestrator->>Review: Re-check goal
   else Passes review
     Review-->>Orchestrator: Pass
   end
-  Orchestrator->>Acceptance: Verify against user goal
+  Orchestrator->>Acceptance: Acceptance goal: verify user outcome
   Acceptance-->>Orchestrator: Acceptance signal
   Orchestrator-->>Lead: Acceptance-ready report
   Lead-->>User: Plain handoff
@@ -118,14 +197,15 @@ coordination preference rather than a generated workflow script.
 
 ## Requirements
 
-For the full nested workflow, the host environment must support multi-level
-subagents.
+For the full workflow, the host environment should support native Goal mode
+where available and multi-level subagents when nested delegation is needed.
 
 - **Codex:** check the [Codex subagents docs](https://developers.openai.com/codex/subagents)
   and [config basics](https://developers.openai.com/codex/config-basic). Codex
-  documents `agents.max_depth` as the spawned-agent nesting depth and notes that
-  the default `max_depth = 1` prevents deeper nesting. A practical starting
-  point is:
+  documents Goal mode and says to enable `features.goals` if `/goal` is not
+  visible. It also documents `agents.max_depth` as the spawned-agent nesting
+  depth and notes that the default `max_depth = 1` prevents deeper nesting. A
+  practical starting point is:
 
   ```toml
   [agents]
@@ -134,12 +214,17 @@ subagents.
 
   [features]
   multi_agent = true
+  goals = true
   ```
 
-- **Claude Code:** use version `2.1.172` or newer. The official
+- **Claude Code:** use version `2.1.172` or newer for nested subagents. The official
   [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
   says v2.1.172 added sub-agents spawning their own sub-agents, up to 5 levels
-  deep. Check your local version with:
+  deep. Claude Code's `/goal` requires `2.1.139` or newer, but the public
+  subagent configuration docs do not document a per-subagent `goal` field. Use
+  native `/goal` for Claude sessions that expose it; for named subagents, pass
+  the goal packet in the delegation prompt unless your runtime exposes a native
+  per-subagent goal control. Check your local version with:
 
   ```bash
   claude --version
@@ -172,7 +257,10 @@ log-driven debugging.
 ## Related Reading
 
 - [Codex subagents](https://developers.openai.com/codex/subagents)
+- [Codex goals](https://developers.openai.com/codex/use-cases/follow-goals)
 - [Codex config basics](https://developers.openai.com/codex/config-basic)
+- [Claude Code goals](https://code.claude.com/docs/en/goal)
+- [Claude Code subagents](https://code.claude.com/docs/en/sub-agents)
 - [Claude Code dynamic workflows](https://code.claude.com/docs/en/workflows)
 - [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
 - [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
