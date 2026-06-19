@@ -2,21 +2,15 @@
 
 **[中文说明](README.zh-CN.md)**
 
-`parallel-goal-workflows` is a guidance skill for delegated, multi-agent work.
-It helps a lead agent hand workflow ownership to an orchestrator, stay out of
-task-level execution, and receive an acceptance-ready report instead of every
-intermediate detail.
+`parallel-goal-workflows` is a guidance skill for deliberate multi-agent
+workflows. It helps a lead agent hand workflow ownership to an orchestrator,
+wait instead of taking delegated work back, and receive an acceptance-ready
+report rather than every intermediate detail.
 
 ## Install
 
 ```bash
 npx skills add patrick-fu/parallel-goal-workflows
-```
-
-Confirm the install:
-
-```bash
-test -f ~/.agents/skills/parallel-goal-workflows/SKILL.md
 ```
 
 Update later:
@@ -28,7 +22,7 @@ npx skills update
 ## Quick Use
 
 This skill is intentionally high-overhead. Name it explicitly when you want the
-workflow boundary:
+Lead / Orchestrator boundary:
 
 ```text
 Use parallel-goal-workflows for this task. The Lead Agent should start an
@@ -36,51 +30,29 @@ Orchestrator, wait instead of doing task-level work, and report back only after
 the Orchestrator returns an acceptance-ready result.
 ```
 
-## Minimal Orchestrator Goal Packet
-
-```text
-/goal Orchestrate this delegated workflow to completion and return an
-acceptance-ready report.
-
-Context:
-[User goal, constraints, relevant project rules, and quality bar.]
-
-Deliverable:
-[Worker results, independent review result, acceptance or verification result,
-repair loop if any, final judgment, remaining risks, and a concise report the
-Lead can relay.]
-
-Pause if:
-[Credentials, destructive actions, external approval, user judgment, or a
-repeated blocker is required.]
-```
-
 ## What It Does
 
-This skill turns a broad delegated task into an orchestrator-owned workflow:
+The skill turns a broad delegated task into an orchestrator-owned workflow:
 
 - the Lead Agent owns the user conversation and final handoff;
-- the Orchestrator owns task decomposition, scheduling, review, acceptance, and
-  repair routing;
+- the Orchestrator owns task decomposition, scheduling, review, acceptance,
+  repair routing, and task-level judgment;
 - Worker, Review, Acceptance, Repair, and Synthesis agents each receive focused
   goals;
-- every spawned agent uses either native Goal mode, when the host exposes it,
-  or a goal-shaped delegation packet with a clear completion condition;
-- the Lead waits with callback-style patience instead of polling or taking work
-  back;
-- worker agents may delegate further when the host environment supports nested
+- every spawned agent uses native Goal mode when available, or a goal-shaped
+  delegation packet when native per-subagent goals are unavailable;
+- the Lead waits with callback-style patience instead of polling, interrupting,
+  or restarting delegated work;
+- downstream agents may delegate further when the host supports nested
   subagents.
 
-The goal is context, not control. The skill does not prescribe a rigid script.
-It gives agents enough ownership boundaries to coordinate well while leaving
-room for the workflow owner to adapt.
+The goal is context, not control. This skill gives agents ownership boundaries
+and completion signals while leaving the workflow owner room to adapt.
 
 ## When To Use It
 
-Use this skill when a task benefits from deliberate, high-overhead delegation
-and you do not want the main conversation to become the coordination workspace.
-It is not the default pattern for ordinary coding, research, review, simple
-parallel exploration, or generic goal decomposition.
+Use this skill when the task is worth a deliberate orchestration layer and you
+do not want the main conversation to become the coordination workspace.
 
 Good fits include:
 
@@ -92,10 +64,12 @@ Good fits include:
   decision and evidence;
 - nested subagent workflows where a worker may need its own workers.
 
-## Goal Discipline
+Do not use it as the default for ordinary coding, research, review, simple
+parallel exploration, or generic goal decomposition.
 
-This skill is goal-first. Every participating agent should start from a goal,
-not a vague chore:
+## Goal-First Coordination
+
+Every participating agent should start from a goal, not a vague chore:
 
 - Lead goal: preserve the conversation boundary and wait for the orchestrator's
   acceptance-ready report.
@@ -107,13 +81,12 @@ not a vague chore:
 
 When the host exposes native Goal mode for the relevant session or thread, use
 it. When a runtime does not expose per-subagent Goal mode, put the same goal
-packet in the delegation message so the subagent still works from an explicit
-completion contract.
+packet in the delegation message.
 
 ## Workflow Shapes
 
-The orchestrator chooses the shape that fits the task. These diagrams are
-coarse workflow patterns, not scripts.
+The orchestrator chooses the shape that fits the task. These are examples, not
+scripts.
 
 ### Orchestrated Review
 
@@ -121,12 +94,12 @@ coarse workflow patterns, not scripts.
 flowchart LR
   User["User"] --> Lead["Lead Agent<br/>conversation boundary"]
   Lead --> Orchestrator["Orchestrator<br/>workflow owner"]
-  Orchestrator --> Worker["Worker / research goal"]
+  Orchestrator --> Worker["Worker goal"]
   Worker --> Review["Independent review"]
   Review --> Decision{"Good enough?"}
-  Decision -- "No" --> Repair["Repair Agent"]
+  Decision -- "No" --> Repair["Repair goal"]
   Repair --> Review
-  Decision -- "Yes" --> Acceptance["Acceptance / Verification"]
+  Decision -- "Yes" --> Acceptance["Acceptance / verification"]
   Acceptance --> Report["Acceptance-ready report"]
   Report --> Lead
   Lead --> User
@@ -148,20 +121,7 @@ flowchart LR
   Decision -- "No" --> Acceptance["Acceptance / report"]
 ```
 
-### Rolling waves
-
-```mermaid
-flowchart LR
-  O["Orchestrator"] --> Explore["Wave 1:<br/>broad exploration"]
-  Explore --> Decision{"Enough signal?"}
-  Decision -- "No" --> Narrow["Next wave:<br/>narrower goals"]
-  Narrow --> Decision
-  Decision -- "Yes" --> Focus["Focused worker goals"]
-  Focus --> Review["Review / acceptance"]
-  Review --> Report["Final report"]
-```
-
-### Nested delegation
+### Nested Delegation
 
 ```mermaid
 flowchart LR
@@ -179,33 +139,18 @@ flowchart LR
 
 ## Why It Helps
 
-### Keeps the Lead Agent from retaking delegated work
+**Prevents Lead Agent takeover.** Main agents often struggle to stay in
+observation mode after delegation. This skill gives the Lead its own boundary
+goal: start the orchestrator, wait, relay clarifications, and report back
+without becoming the hidden worker.
 
-Main agents often struggle to remain in observation mode after delegation. After
-spawning a subagent or launching a long-running command, they may start doing
-the same work themselves, poll too frequently, stop slow commands, or close and
-restart subagents at the first sign of friction.
+**Keeps coordination noise out of the main context.** Review findings, repair
+loops, acceptance checks, and intermediate disagreements stay inside the
+orchestrated workflow. The Lead receives the final report, evidence, and risks.
 
-This skill gives the Lead Agent its own boundary goal: start the orchestrator,
-wait with callback-style patience, relay user updates when needed, and report
-back without becoming the hidden worker.
-
-### Uses the Orchestrator as a context buffer
-
-In a normal subagent workflow, the Main Agent often still absorbs review,
-acceptance, repair decisions, and noisy intermediate findings. That burns the
-main context window.
-
-Here, a second-level Orchestrator absorbs that work. The Lead gets the final
-report, supporting evidence, and remaining risks, while the messy coordination
-stays inside the delegated workflow.
-
-### Preserves flexible orchestration
-
-Dynamic workflow systems often move the plan into code so the runtime can run
-large repeatable fan-outs. This skill is deliberately lighter: it keeps the plan
-in agent goals and ownership boundaries. Use it when you want a reusable
-coordination preference rather than a generated workflow script.
+**Stays flexible.** The skill is not a workflow script. It keeps coordination in
+agent goals and ownership boundaries so the orchestrator can choose the shape
+that fits the task.
 
 ## Requirements
 
@@ -229,46 +174,20 @@ where available and multi-level subagents when nested delegation is needed.
   goals = true
   ```
 
-- **Claude Code:** use version `2.1.172` or newer for nested subagents. The official
-  [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
+- **Claude Code:** use version `2.1.172` or newer for nested subagents. The
+  official [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
   says v2.1.172 added sub-agents spawning their own sub-agents, up to 5 levels
   deep. Claude Code's `/goal` requires `2.1.139` or newer, but the public
   subagent configuration docs do not document a per-subagent `goal` field. Use
   native `/goal` for Claude sessions that expose it; for named subagents, pass
   the goal packet in the delegation prompt unless your runtime exposes a native
-  per-subagent goal control. Check your local version with:
+  per-subagent goal control.
 
   ```bash
   claude --version
   ```
 
-## Repository Layout
-
-This standalone repository is a single-skill package with the skill body and
-references flattened at the repository root:
-
-```text
-README.md
-README.zh-CN.md
-SKILL.md
-references/
-```
-
 ## More Skills
 
 For more reusable agent skills, see
-[Awesome Skills](https://github.com/patrick-fu/awesome-skills). It includes
-skills for brainstorming, coding-agent delegation, code review, commit
-messages, goal contracts, learning coaching, home config sync, and
-log-driven debugging.
-
-## Related Reading
-
-- [Codex subagents](https://developers.openai.com/codex/subagents)
-- [Codex goals](https://developers.openai.com/codex/use-cases/follow-goals)
-- [Codex config basics](https://developers.openai.com/codex/config-basic)
-- [Claude Code goals](https://code.claude.com/docs/en/goal)
-- [Claude Code subagents](https://code.claude.com/docs/en/sub-agents)
-- [Claude Code dynamic workflows](https://code.claude.com/docs/en/workflows)
-- [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
-- [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+[Awesome Skills](https://github.com/patrick-fu/awesome-skills).
