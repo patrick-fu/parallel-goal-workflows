@@ -144,6 +144,13 @@ npx skills update
 
 - `parallel-goal-workflows`
 
+## 更多 Skills
+
+更多可复用的 Agent Skills 可以看
+[Awesome Skills](https://github.com/patrick-fu/awesome-skills/blob/main/README.zh-CN.md)。
+里面还包括 brainstorm、coding-agent 委托、code review、commit message、goal contract、
+学习教练、home config sync 和 log-driven debugging 等 Skills。
+
 ## 参考资料
 
 - [Codex subagents](https://developers.openai.com/codex/subagents)

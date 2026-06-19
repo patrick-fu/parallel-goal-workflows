@@ -161,6 +161,14 @@ npx skills update
 
 - `parallel-goal-workflows`
 
+## More Skills
+
+For more reusable agent skills, see
+[Awesome Skills](https://github.com/patrick-fu/awesome-skills). It includes
+skills for brainstorming, coding-agent delegation, code review, commit
+messages, goal contracts, learning coaching, home config sync, and
+log-driven debugging.
+
 ## Related Reading
 
 - [Codex subagents](https://developers.openai.com/codex/subagents)
