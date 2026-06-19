@@ -2,88 +2,50 @@
 
 **[中文说明](README.zh-CN.md)**
 
-`parallel-goal-workflows` is an agent skill for goal-driven multi-agent work. It
-guides a lead agent to start an orchestrator, hold a conversation-level boundary
-goal, wait with callback-style patience, and report back while the orchestrator
-coordinates workers, review, acceptance, and repair.
+`parallel-goal-workflows` is a guidance skill for delegated, multi-agent work.
+It helps a lead agent hand workflow ownership to an orchestrator, stay out of
+task-level execution, and receive an acceptance-ready report instead of every
+intermediate detail.
 
-## Highlights
+## What It Does
 
-### 1. Keeps the Lead Agent from taking work back
+This skill turns a broad delegated task into an orchestrator-owned workflow:
 
-Main agents often struggle to stay idle after they delegate. After spawning a
-subagent or launching a long-running command, they may start doing the same work
-themselves, poll progress too frequently, stop slow commands, or close and
-restart subagents at the first sign of friction.
+- the Lead Agent owns the user conversation and final handoff;
+- the Orchestrator owns task decomposition, scheduling, review, acceptance, and
+  repair routing;
+- Worker, Review, Acceptance, Repair, and Synthesis agents each receive focused
+  goals;
+- the Lead waits with callback-style patience instead of polling or taking work
+  back;
+- worker agents may delegate further when the host environment supports nested
+  subagents.
 
-This skill directly targets that behavior. The Lead Agent gets its own
-conversation-level boundary goal: start the orchestrator, wait with
-callback-style patience, and report back without becoming the hidden worker.
+The goal is context, not control. The skill does not prescribe a rigid script.
+It gives agents enough ownership boundaries to coordinate well while leaving
+room for the workflow owner to adapt.
 
-### 2. Uses an Orchestrator to isolate review and acceptance noise
+## When To Use It
 
-In many subagent workflows, the Main Agent still absorbs the cost of reviewing
-worker output, running acceptance checks, deciding whether repair is needed, and
-summarizing every intermediate detail. That burns the main context window.
+Use this skill when a task benefits from delegated agents but you do not want
+the main conversation to become the coordination workspace.
 
-This skill moves delegation, review, acceptance, and repair routing into a
-second-level subagent: the Orchestrator. The Lead Agent receives an
-acceptance-ready report instead of every noisy intermediate step.
+Good fits include:
 
-### 3. Designed for multi-level subagents
-
-For the full workflow, enable nested subagents in your host environment.
-
-- **Codex:** check the [Codex subagents docs](https://developers.openai.com/codex/subagents)
-  and [config basics](https://developers.openai.com/codex/config-basic). Codex
-  documents `agents.max_depth` as the spawned-agent nesting depth and notes that
-  the default `max_depth = 1` prevents deeper nesting. A practical starting
-  point is:
-
-  ```toml
-  [agents]
-  max_threads = 50
-  max_depth = 5
-
-  [features]
-  multi_agent = true
-  ```
-
-- **Claude Code:** use version `2.1.172` or newer. The official
-  [Claude Code changelog](https://code.claude.com/docs/en/changelog#21172) says
-  v2.1.172 added sub-agents spawning their own sub-agents, up to 5 levels deep.
-  Check your local version with:
-
-  ```bash
-  claude --version
-  ```
-
-## Install
-
-```bash
-npx skills add patrick-fu/parallel-goal-workflows
-```
-
-To update later:
-
-```bash
-npx skills update
-```
-
-## What It Helps With
-
-- delegated workflows where the lead should not become a hidden worker
-- fan-out / fan-in agent work with independent review
-- orchestrator-owned acceptance and repair loops
-- nested subagent workflows when the host environment supports them
-- Codex and Claude Code configuration guidance for nested subagents
+- parallel code review, codebase audits, or cross-checked research;
+- multi-step implementation plans that need independent workers and review;
+- long-running command or subagent work where the lead might otherwise poll,
+  interrupt, or restart too aggressively;
+- review and repair loops where the main context should only receive the final
+  decision and evidence;
+- nested subagent workflows where a worker may need its own workers.
 
 ## Workflow Shape
 
 ```mermaid
 flowchart LR
-  User["User"] --> Lead["Lead Agent: boundary goal"]
-  Lead --> Orchestrator["Orchestrator: workflow owner"]
+  User["User"] --> Lead["Lead Agent<br/>conversation boundary"]
+  Lead --> Orchestrator["Orchestrator<br/>workflow owner"]
   Orchestrator --> Workers["Worker / Research / Evidence"]
   Orchestrator --> Review["Independent Review"]
   Review --> Decision{"Review passes?"}
@@ -124,11 +86,85 @@ sequenceDiagram
   Lead-->>User: Plain handoff
 ```
 
+## Why It Helps
+
+### Keeps the Lead Agent from retaking delegated work
+
+Main agents often struggle to remain in observation mode after delegation. After
+spawning a subagent or launching a long-running command, they may start doing
+the same work themselves, poll too frequently, stop slow commands, or close and
+restart subagents at the first sign of friction.
+
+This skill gives the Lead Agent its own boundary goal: start the orchestrator,
+wait with callback-style patience, relay user updates when needed, and report
+back without becoming the hidden worker.
+
+### Uses the Orchestrator as a context buffer
+
+In a normal subagent workflow, the Main Agent often still absorbs review,
+acceptance, repair decisions, and noisy intermediate findings. That burns the
+main context window.
+
+Here, a second-level Orchestrator absorbs that work. The Lead gets the final
+report, supporting evidence, and remaining risks, while the messy coordination
+stays inside the delegated workflow.
+
+### Preserves flexible orchestration
+
+Dynamic workflow systems often move the plan into code so the runtime can run
+large repeatable fan-outs. This skill is deliberately lighter: it keeps the plan
+in agent goals and ownership boundaries. Use it when you want a reusable
+coordination preference rather than a generated workflow script.
+
+## Requirements
+
+For the full nested workflow, the host environment must support multi-level
+subagents.
+
+- **Codex:** check the [Codex subagents docs](https://developers.openai.com/codex/subagents)
+  and [config basics](https://developers.openai.com/codex/config-basic). Codex
+  documents `agents.max_depth` as the spawned-agent nesting depth and notes that
+  the default `max_depth = 1` prevents deeper nesting. A practical starting
+  point is:
+
+  ```toml
+  [agents]
+  max_threads = 50
+  max_depth = 5
+
+  [features]
+  multi_agent = true
+  ```
+
+- **Claude Code:** use version `2.1.172` or newer. The official
+  [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
+  says v2.1.172 added sub-agents spawning their own sub-agents, up to 5 levels
+  deep. Check your local version with:
+
+  ```bash
+  claude --version
+  ```
+
+## Install
+
+```bash
+npx skills add patrick-fu/parallel-goal-workflows
+```
+
+To update later:
+
+```bash
+npx skills update
+```
+
 ## Included Skill
 
 - `parallel-goal-workflows`
 
-## Notes
+## Related Reading
 
-The skill is intentionally guidance-first. It provides context and ownership
-patterns rather than a rigid script for how every agent must behave.
+- [Codex subagents](https://developers.openai.com/codex/subagents)
+- [Codex config basics](https://developers.openai.com/codex/config-basic)
+- [Claude Code dynamic workflows](https://code.claude.com/docs/en/workflows)
+- [Claude Code changelog](https://code.claude.com/docs/en/changelog#2-1-172)
+- [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
