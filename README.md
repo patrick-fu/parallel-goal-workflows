@@ -68,7 +68,7 @@ you want to stay directly in the main conversation.
 
 ## How It Works
 
-Internally, the lead agent hands the task to a Workflow Owner. The Workflow
+Internally, the main agent hands the task to a Workflow Owner. The Workflow
 Owner is responsible for decomposition, execution coordination, review, repair,
 acceptance, and final judgment.
 
@@ -88,8 +88,8 @@ not scripts.
 
 ```mermaid
 flowchart LR
-  User["User"] --> Lead["Lead Agent<br/>conversation boundary"]
-  Lead --> Owner["Workflow Owner<br/>task owner"]
+  User["User"] --> Main["Main Agent<br/>conversation boundary"]
+  Main --> Owner["Workflow Owner<br/>task owner"]
   Owner --> Worker["Worker goal"]
   Worker --> Review["Independent review"]
   Review --> Decision{"Good enough?"}
@@ -97,8 +97,8 @@ flowchart LR
   Repair --> Review
   Decision -- "Yes" --> Acceptance["Acceptance / verification"]
   Acceptance --> Report["Acceptance-ready report"]
-  Report --> Lead
-  Lead --> User
+  Report --> Main
+  Main --> User
 ```
 
 ### Parallel Synthesis
