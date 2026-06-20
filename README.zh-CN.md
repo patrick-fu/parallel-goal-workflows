@@ -58,13 +58,19 @@ $parallel-goal-workflows
 
 ## 工作方式
 
-内部实现上，Main Agent 会把任务交给 Workflow Owner。Workflow Owner 负责拆解、执行协调、
-review、repair、acceptance 和最终判断。
+内部实现上，每个 Agent 都有清晰职责：
+
+- **Main Agent：** 面向用户，理解用户原始需求，把需求转化成清晰的任务合约，启动一个
+  Workflow Owner，观察进度，并转交最终汇报。
+- **Workflow Owner：** 负责拆解、执行协调、review、repair、acceptance 和最终判断。
+- **聚焦 agents 或 helpers：** 只负责局部目标，根据收到的任务包工作，并把证据、验证结果、
+  风险或决策报告给 Workflow Owner。
 
 子 Agent 的角色只是例子，不是固定类型列表。一个工作流可以按需使用 worker、reviewer、
 verifier、researcher、explorer、implementer、领域专家或其他聚焦 helper。
 
-每个被委派出去的任务都应该带有局部目标、相关上下文、边界、期望交付物、验证要求和暂停条件。
+Main Agent 和 Workflow Owner 应该发送整理后的任务包，而不是原样转发用户 prompt。每个被委派出去的
+任务都应该带有局部目标、相关上下文、边界、期望交付物、验证要求和暂停条件。
 
 ## 工作流形态
 

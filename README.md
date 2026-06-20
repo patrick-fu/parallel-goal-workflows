@@ -68,16 +68,24 @@ you want to stay directly in the main conversation.
 
 ## How It Works
 
-Internally, the main agent hands the task to a Workflow Owner. The Workflow
-Owner is responsible for decomposition, execution coordination, review, repair,
-acceptance, and final judgment.
+Internally, each agent has a clear job:
+
+- **Main Agent:** stays user-facing, interprets the raw request, turns it into a
+  clear task contract, starts one Workflow Owner, observes progress, and relays
+  the final handoff.
+- **Workflow Owner:** owns decomposition, execution coordination, review,
+  repair, acceptance, and final judgment.
+- **Focused agents or helpers:** own local goals only, work from the task packet
+  they receive, and report evidence, verification, risks, or decisions back to
+  the Workflow Owner.
 
 Child agent roles are examples, not a fixed type list. A workflow may use
 workers, reviewers, verifiers, researchers, explorers, implementers, domain
 specialists, or other focused helpers as the task warrants.
 
-Every delegated task should carry a local goal, relevant context, boundaries,
-expected deliverable, verification needs, and pause conditions.
+The Main Agent and Workflow Owner should send compiled task packets, not raw
+user prompts. Every delegated task should carry a local goal, relevant context,
+boundaries, expected deliverable, verification needs, and pause conditions.
 
 ## Workflow Shapes
 
