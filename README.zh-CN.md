@@ -135,8 +135,6 @@ flowchart LR
 - **OpenAI Codex:** 使用 `$parallel-goal-workflows` 调用。随附的 `agents/openai.yaml` 设置了
   `policy.allow_implicit_invocation: false`，因此 Codex 不应隐式选择它。Codex 支持通过
   `agents.max_depth` 配置嵌套 spawned agents。
-- **ChatGPT Skills:** OpenAI 公开的 ChatGPT Skills 文档描述的是自动选择 Skill，未公开等价的
-  user-only 硬开关。在 ChatGPT 中使用这个 workflow 时，请用显式调用语义描述需求。
 
 实用的 Codex 配置：
 

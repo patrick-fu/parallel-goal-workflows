@@ -154,10 +154,6 @@ and subagents.
   `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` so Codex
   should not select it implicitly. Codex supports `agents.max_depth` for nested
   spawned agents.
-- **ChatGPT Skills:** OpenAI's public ChatGPT Skills documentation describes
-  automatic skill selection and does not document an equivalent hard
-  user-only switch. Use explicit invocation wording when using this workflow in
-  ChatGPT.
 
 A practical Codex configuration is:
 
