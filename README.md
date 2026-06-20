@@ -88,6 +88,9 @@ specialists, or other focused helpers as the task warrants.
 The Main Agent and Workflow Owner should send compiled task packets, not raw
 user prompts. Every delegated task should carry a local goal, relevant context,
 boundaries, expected deliverable, verification needs, and pause conditions.
+The Main Agent waits on workflow state, not output volume, and steps in only on
+blocked or needs-human signals instead of reclaiming work because a task is
+quiet.
 
 ## Workflow Shapes
 

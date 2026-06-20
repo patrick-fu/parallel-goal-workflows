@@ -73,6 +73,8 @@ verifier、researcher、explorer、implementer、领域专家或其他聚焦 hel
 
 Main Agent 和 Workflow Owner 应该发送整理后的任务包，而不是原样转发用户 prompt。每个被委派出去的
 任务都应该带有局部目标、相关上下文、边界、期望交付物、验证要求和暂停条件。
+Main Agent 等待的是 workflow state，而不是输出量；只有在 blocked 或 needs-human 信号出现时才介入，
+不能因为任务安静就重新接管工作。
 
 ## 工作流形态
 
