@@ -2,10 +2,13 @@
 
 **[中文说明](README.zh-CN.md)**
 
-`parallel-goal-workflows` is a manual guidance skill for high-overhead
-multi-agent work. It keeps the main conversation as the Lead, hands task
-strategy to one Orchestrator, and lets deeper agents handle local goals without
-creating another global strategy layer.
+`parallel-goal-workflows` is a guidance skill for complex multi-agent work. It
+helps the main conversation stay clean while a delegated workflow runs through
+planning, focused execution, review, repair, acceptance, and a concise final
+handoff.
+
+Use it when a task is too broad, noisy, or risk-sensitive for the main agent to
+both coordinate and execute directly.
 
 ## Install
 
@@ -21,43 +24,124 @@ npx skills update
 
 ## Quick Use
 
-Name the skill explicitly:
+Invoke the skill with a slash command or `$` command, then describe the task
+clearly:
 
 ```text
-Use $parallel-goal-workflows for this task. Keep one global strategy owner:
-Lead -> Orchestrator. The Orchestrator may use nested workers, reviewers,
-verifiers, repair agents, synthesis agents, or helpers for local goals, but no
-child should create another Orchestrator for the same user goal.
+$parallel-goal-workflows
+
+Audit this repository's authentication flow. I want independent exploration,
+implementation-risk review, and a final report with evidence, open risks, and
+recommended fixes.
 ```
 
-## Core Boundary
+Mention the goal, scope, constraints, expected evidence, and anything that
+requires approval.
 
-```text
-Lead -> Orchestrator -> Worker / Review / Acceptance / Repair / Synthesis / Helper...
+## What It Does
+
+The skill turns a broad request into an owned workflow:
+
+- keeps coordination noise out of the main conversation;
+- delegates focused work to agents or helpers when useful;
+- routes important findings through review and repair;
+- checks whether the result satisfies the original goal;
+- returns a concise report with evidence and remaining risks.
+
+The workflow can be small. It does not force parallelism when a single focused
+agent is enough.
+
+## When To Use It
+
+Good fits include:
+
+- codebase audits or cross-checked research;
+- multi-step implementation work that needs independent review;
+- long-running tasks where intermediate logs would flood the main context;
+- review and repair loops where the final decision matters more than every
+  intermediate detail;
+- broad tasks that benefit from multiple focused agents working under one
+  workflow owner.
+
+Avoid it for quick edits, simple research, ordinary code review, or tasks where
+you want to stay directly in the main conversation.
+
+## How It Works
+
+Internally, the lead agent hands the task to a Workflow Owner. The Workflow
+Owner is responsible for decomposition, execution coordination, review, repair,
+acceptance, and final judgment.
+
+Child agent roles are examples, not a fixed type list. A workflow may use
+workers, reviewers, verifiers, researchers, explorers, implementers, domain
+specialists, or other focused helpers as the task warrants.
+
+Every delegated task should carry a local goal, relevant context, boundaries,
+expected deliverable, verification needs, and pause conditions.
+
+## Workflow Shapes
+
+The Workflow Owner chooses the shape that fits the task. These are examples,
+not scripts.
+
+### Review And Repair
+
+```mermaid
+flowchart LR
+  User["User"] --> Lead["Lead Agent<br/>conversation boundary"]
+  Lead --> Owner["Workflow Owner<br/>task owner"]
+  Owner --> Worker["Worker goal"]
+  Worker --> Review["Independent review"]
+  Review --> Decision{"Good enough?"}
+  Decision -- "No" --> Repair["Repair goal"]
+  Repair --> Review
+  Decision -- "Yes" --> Acceptance["Acceptance / verification"]
+  Acceptance --> Report["Acceptance-ready report"]
+  Report --> Lead
+  Lead --> User
 ```
 
-- The Lead owns the user conversation, waits, relays clarifications, and reports
-  the Orchestrator's final result.
-- The Orchestrator owns task-level strategy, review, repair, acceptance, and
-  final judgment.
-- Downstream agents may create narrower helpers, but they do not re-run the
-  lead/orchestrator workflow.
+### Parallel Synthesis
 
-The problem this skill prevents is not "too many levels." The problem is
-Ultra-Strategy: a delegated agent treats the whole task as a fresh strategy
-problem and spawns another global Orchestrator. The fix is a role packet, not a
-shallow depth cap.
+```mermaid
+flowchart LR
+  Owner["Workflow Owner"] --> A["Worker A goal"]
+  Owner --> B["Worker B goal"]
+  Owner --> C["Worker C goal"]
+  A --> S["Synthesis goal"]
+  B --> S
+  C --> S
+  S --> Decision{"Conflict or gap?"}
+  Decision -- "Yes" --> Followup["Targeted follow-up goal"]
+  Followup --> S
+  Decision -- "No" --> Acceptance["Acceptance / report"]
+```
 
-## Runtime Compatibility
+### Nested Helpers
 
-- **Claude Code:** `disable-model-invocation: true` in `SKILL.md` makes the
-  skill manual. Claude Code v2.1.172 and newer support nested subagents up to 5
-  levels deep.
-- **OpenAI Codex:** `agents/openai.yaml` sets
-  `policy.allow_implicit_invocation: false`, so explicit `$parallel-goal-workflows`
-  still works while implicit invocation is disabled.
+```mermaid
+flowchart LR
+  Owner["Workflow Owner"] --> W["Worker goal"]
+  W --> Decision{"Needs deeper help?"}
+  Decision -- "Yes" --> A["Helper A goal"]
+  Decision -- "Yes" --> B["Helper B goal"]
+  A --> S["Worker synthesis"]
+  B --> S
+  Decision -- "No" --> Direct["Worker result"]
+  S --> Review["Review / acceptance"]
+  Direct --> Review
+  Review --> Report["Final report"]
+```
 
-## Codex Depth
+## Requirements
+
+The best experience uses a host that supports goals and subagents.
+
+- **Claude Code:** skills can be invoked directly with `/skill-name`; nested
+  subagents are supported in Claude Code v2.1.172 and newer, up to 5 levels
+  deep.
+- **OpenAI Codex:** skills can be invoked with `$skill-name`; Codex supports
+  `agents.max_depth` for nested spawned agents.
 
 A practical Codex configuration is:
 
@@ -70,15 +154,6 @@ max_depth = 5
 multi_agent = true
 goals = true
 ```
-
-Use depth as capacity for local helpers:
-
-```text
-Lead -> Orchestrator -> Worker -> Helper -> Verifier -> Repair
-```
-
-Do not use depth to create `Orchestrator -> Orchestrator` recursion. The
-delegation packet should always state the global strategy owner and local scope.
 
 For more detail, see
 [`references/codex-nested-subagents.md`](references/codex-nested-subagents.md).

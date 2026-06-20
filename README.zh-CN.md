@@ -2,9 +2,10 @@
 
 **[English README](README.md)**
 
-`parallel-goal-workflows` 是一个需要手动调用的高开销多 Agent 工作流 Skill。它让主会话保留
-Lead 角色，把任务级策略交给一个 Orchestrator，并允许更深层 Agent 处理局部目标，但不再创建新的
-全局策略层。
+`parallel-goal-workflows` 是一个面向复杂多 Agent 工作的指导型 Skill。它让主会话保持清爽，
+把复杂任务交给一个被委派的工作流去完成规划、聚焦执行、review、repair、acceptance 和最终汇报。
+
+当任务过宽、噪声太多，或者风险较高，不适合由主 Agent 一边协调一边直接执行时，可以使用它。
 
 ## 安装
 
@@ -20,36 +21,112 @@ npx skills update
 
 ## 快速使用
 
-显式点名这个 Skill：
+用 slash command 或 `$` command 调用这个 Skill，然后把任务描述清楚：
 
 ```text
-请使用 $parallel-goal-workflows 处理这个任务。保持一个全局策略 owner：
-Lead -> Orchestrator。Orchestrator 可以为了局部目标使用嵌套 Worker、Reviewer、
-Verifier、Repair、Synthesis 或 Helper，但任何子 Agent 都不应该为同一个用户目标再创建
-另一个 Orchestrator。
+$parallel-goal-workflows
+
+审计这个仓库的认证流程。我希望有独立探索、实现风险 review，并最终给我一份包含证据、
+未解决风险和推荐修复方案的报告。
 ```
 
-## 核心边界
+说明目标、范围、约束、期望证据，以及哪些事情需要你批准。
 
-```text
-Lead -> Orchestrator -> Worker / Review / Acceptance / Repair / Synthesis / Helper...
+## 它能做什么
+
+这个 Skill 会把一个宽泛请求变成有 owner 的工作流：
+
+- 把协调噪声留在主会话之外；
+- 在有价值时把聚焦任务委派给 agents 或 helpers；
+- 对重要发现做 review 和 repair；
+- 检查结果是否满足原始目标；
+- 返回一份包含证据和剩余风险的简洁报告。
+
+工作流可以很小。一个聚焦 agent 足够时，它不会强行并行。
+
+## 什么时候使用
+
+典型场景包括：
+
+- 代码库审计或交叉验证式 research；
+- 需要独立 review 的多步骤实现任务；
+- 长时间任务，且中间日志不适合塞进主上下文；
+- review / repair loop 很重要，而你更关心最终判断而不是每个中间细节；
+- 宽泛任务，需要多个聚焦 agent 在一个 workflow owner 下协作。
+
+不适合用于快速小改、简单调研、普通 code review，或你希望主会话直接参与每一步的任务。
+
+## 工作方式
+
+内部实现上，Lead Agent 会把任务交给 Workflow Owner。Workflow Owner 负责拆解、执行协调、
+review、repair、acceptance 和最终判断。
+
+子 Agent 的角色只是例子，不是固定类型列表。一个工作流可以按需使用 worker、reviewer、
+verifier、researcher、explorer、implementer、领域专家或其他聚焦 helper。
+
+每个被委派出去的任务都应该带有局部目标、相关上下文、边界、期望交付物、验证要求和暂停条件。
+
+## 工作流形态
+
+Workflow Owner 会根据任务选择合适的形态。下面这些是示例，不是脚本。
+
+### Review And Repair
+
+```mermaid
+flowchart LR
+  User["用户"] --> Lead["Lead Agent<br/>会话边界"]
+  Lead --> Owner["Workflow Owner<br/>任务 owner"]
+  Owner --> Worker["Worker goal"]
+  Worker --> Review["独立 Review"]
+  Review --> Decision{"足够好吗？"}
+  Decision -- "否" --> Repair["Repair goal"]
+  Repair --> Review
+  Decision -- "是" --> Acceptance["Acceptance / Verification"]
+  Acceptance --> Report["可验收报告"]
+  Report --> Lead
+  Lead --> User
 ```
 
-- Lead 负责用户会话、等待、转发澄清和汇报 Orchestrator 的最终结果。
-- Orchestrator 负责任务级策略、review、repair、acceptance 和最终判断。
-- 下游 Agent 可以创建更窄的 helper，但不重新运行 lead/orchestrator 工作流。
+### 并行综合
 
-这个 Skill 要解决的问题不是“层级太多”。真正的问题是 Ultra-Strategy：被委派的 Agent 把整个任务
-当成一个新的全局策略问题，于是又派生一个 Orchestrator。修复点是 role packet，不是浅层 depth cap。
+```mermaid
+flowchart LR
+  Owner["Workflow Owner"] --> A["Worker A goal"]
+  Owner --> B["Worker B goal"]
+  Owner --> C["Worker C goal"]
+  A --> S["Synthesis goal"]
+  B --> S
+  C --> S
+  S --> Decision{"有冲突或缺口？"}
+  Decision -- "是" --> Followup["定向补充 goal"]
+  Followup --> S
+  Decision -- "否" --> Acceptance["验收 / 报告"]
+```
 
-## 运行时兼容
+### 嵌套 Helpers
 
-- **Claude Code:** `SKILL.md` 里的 `disable-model-invocation: true` 让 Skill 只能手动调用。
-  Claude Code v2.1.172 及更新版本支持最多 5 层嵌套 subagent。
-- **OpenAI Codex:** `agents/openai.yaml` 里设置
-  `policy.allow_implicit_invocation: false`，保留显式 `$parallel-goal-workflows` 调用，同时关闭隐式触发。
+```mermaid
+flowchart LR
+  Owner["Workflow Owner"] --> W["Worker goal"]
+  W --> Decision{"需要更深层帮助？"}
+  Decision -- "是" --> A["Helper A goal"]
+  Decision -- "是" --> B["Helper B goal"]
+  A --> S["Worker synthesis"]
+  B --> S
+  Decision -- "否" --> Direct["Worker result"]
+  S --> Review["Review / Acceptance"]
+  Direct --> Review
+  Review --> Report["最终报告"]
+```
 
-## Codex Depth
+## 使用要求
+
+最佳体验需要宿主环境支持 goals 和 subagents。
+
+- **Claude Code:** 可以用 `/skill-name` 直接调用；Claude Code v2.1.172 及更新版本支持最多
+  5 层嵌套 subagent。
+- **OpenAI Codex:** 可以用 `$skill-name` 调用；Codex 支持通过 `agents.max_depth` 配置嵌套
+  spawned agents。
 
 实用的 Codex 配置：
 
@@ -62,15 +139,6 @@ max_depth = 5
 multi_agent = true
 goals = true
 ```
-
-把 depth 当成局部 helper 的容量：
-
-```text
-Lead -> Orchestrator -> Worker -> Helper -> Verifier -> Repair
-```
-
-不要把 depth 用来创建 `Orchestrator -> Orchestrator` 递归。委派 packet 应该始终写明全局策略 owner
-和局部 scope。
 
 更多细节见
 [`references/codex-nested-subagents.md`](references/codex-nested-subagents.md)。
