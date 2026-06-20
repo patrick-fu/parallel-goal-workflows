@@ -7,8 +7,8 @@ helps the main conversation stay clean while a delegated workflow runs through
 planning, focused execution, review, repair, acceptance, and a concise final
 handoff.
 
-Use it when a task is too broad, noisy, or risk-sensitive for the main agent to
-both coordinate and execute directly.
+Invoke it explicitly when a task is too broad, noisy, or risk-sensitive for the
+main agent to both coordinate and execute directly.
 
 ## Install
 
@@ -24,8 +24,8 @@ npx skills update
 
 ## Quick Use
 
-Invoke the skill with a slash command or `$` command, then describe the task
-clearly:
+This is a user-invoked skill. Invoke it with a slash command or `$` command,
+then describe the task clearly:
 
 ```text
 $parallel-goal-workflows
@@ -143,13 +143,21 @@ flowchart LR
 
 ## Requirements
 
-The best experience uses a host that supports goals and subagents.
+The best experience uses a host that supports explicit skill invocation, goals,
+and subagents.
 
-- **Claude Code:** skills can be invoked directly with `/skill-name`; nested
-  subagents are supported in Claude Code v2.1.172 and newer, up to 5 levels
-  deep.
-- **OpenAI Codex:** skills can be invoked with `$skill-name`; Codex supports
-  `agents.max_depth` for nested spawned agents.
+- **Claude Code:** invoke with `/parallel-goal-workflows`. The skill sets
+  `disable-model-invocation: true` so Claude Code should not select it
+  automatically or preload it into subagents. Nested subagents are supported in
+  Claude Code v2.1.172 and newer, up to 5 levels deep.
+- **OpenAI Codex:** invoke with `$parallel-goal-workflows`. The bundled
+  `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` so Codex
+  should not select it implicitly. Codex supports `agents.max_depth` for nested
+  spawned agents.
+- **ChatGPT Skills:** OpenAI's public ChatGPT Skills documentation describes
+  automatic skill selection and does not document an equivalent hard
+  user-only switch. Use explicit invocation wording when using this workflow in
+  ChatGPT.
 
 A practical Codex configuration is:
 

@@ -5,7 +5,7 @@
 `parallel-goal-workflows` 是一个面向复杂多 Agent 工作的指导型 Skill。它让主会话保持清爽，
 把复杂任务交给一个被委派的工作流去完成规划、聚焦执行、review、repair、acceptance 和最终汇报。
 
-当任务过宽、噪声太多，或者风险较高，不适合由主 Agent 一边协调一边直接执行时，可以使用它。
+当任务过宽、噪声太多，或者风险较高，不适合由主 Agent 一边协调一边直接执行时，显式调用它。
 
 ## 安装
 
@@ -21,7 +21,7 @@ npx skills update
 
 ## 快速使用
 
-用 slash command 或 `$` command 调用这个 Skill，然后把任务描述清楚：
+这是一个 user-invoked Skill。用 slash command 或 `$` command 调用它，然后把任务描述清楚：
 
 ```text
 $parallel-goal-workflows
@@ -127,12 +127,16 @@ flowchart LR
 
 ## 使用要求
 
-最佳体验需要宿主环境支持 goals 和 subagents。
+最佳体验需要宿主环境支持显式 Skill 调用、goals 和 subagents。
 
-- **Claude Code:** 可以用 `/skill-name` 直接调用；Claude Code v2.1.172 及更新版本支持最多
-  5 层嵌套 subagent。
-- **OpenAI Codex:** 可以用 `$skill-name` 调用；Codex 支持通过 `agents.max_depth` 配置嵌套
-  spawned agents。
+- **Claude Code:** 使用 `/parallel-goal-workflows` 调用。这个 Skill 设置了
+  `disable-model-invocation: true`，因此 Claude Code 不应自动选择它，也不应把它预加载到
+  subagents。Claude Code v2.1.172 及更新版本支持最多 5 层嵌套 subagent。
+- **OpenAI Codex:** 使用 `$parallel-goal-workflows` 调用。随附的 `agents/openai.yaml` 设置了
+  `policy.allow_implicit_invocation: false`，因此 Codex 不应隐式选择它。Codex 支持通过
+  `agents.max_depth` 配置嵌套 spawned agents。
+- **ChatGPT Skills:** OpenAI 公开的 ChatGPT Skills 文档描述的是自动选择 Skill，未公开等价的
+  user-only 硬开关。在 ChatGPT 中使用这个 workflow 时，请用显式调用语义描述需求。
 
 实用的 Codex 配置：
 
