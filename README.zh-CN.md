@@ -2,7 +2,7 @@
 
 **[English README](README.md)**
 
-![用铅笔素描呈现散乱需求被整理成协作工作流和最终报告](assets/workbench-workflow-sketch.jpg)
+![用铅笔素描呈现散乱需求被整理成协作工作流和最终报告](assets/workbench-workflow-sketch.webp)
 
 `parallel-goal-workflows` 是一个面向复杂多 Agent 工作的指导型 Skill。它让主会话保持清爽，
 把复杂任务交给一个被委派的工作流去完成规划、聚焦执行、review、repair、acceptance 和最终汇报。

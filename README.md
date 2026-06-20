@@ -2,7 +2,7 @@
 
 **[中文说明](README.zh-CN.md)**
 
-![A pencil sketch showing scattered notes becoming a coordinated workflow and final report](assets/workbench-workflow-sketch.jpg)
+![A pencil sketch showing scattered notes becoming a coordinated workflow and final report](assets/workbench-workflow-sketch.webp)
 
 `parallel-goal-workflows` is a guidance skill for complex multi-agent work. It
 helps the main conversation stay clean while a delegated workflow runs through
