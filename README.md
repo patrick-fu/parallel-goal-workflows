@@ -115,7 +115,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Owner["Workflow Owner"] --> A["Worker A goal"]
+  User["User"] --> Main["Main Agent<br/>conversation boundary"]
+  Main --> Owner["Workflow Owner<br/>task owner"]
+  Owner --> A["Worker A goal"]
   Owner --> B["Worker B goal"]
   Owner --> C["Worker C goal"]
   A --> S["Synthesis goal"]
@@ -125,13 +127,17 @@ flowchart LR
   Decision -- "Yes" --> Followup["Targeted follow-up goal"]
   Followup --> S
   Decision -- "No" --> Acceptance["Acceptance / report"]
+  Acceptance --> Main
+  Main --> User
 ```
 
 ### Nested Helpers
 
 ```mermaid
 flowchart LR
-  Owner["Workflow Owner"] --> W["Worker goal"]
+  User["User"] --> Main["Main Agent<br/>conversation boundary"]
+  Main --> Owner["Workflow Owner<br/>task owner"]
+  Owner --> W["Worker goal"]
   W --> Decision{"Needs deeper help?"}
   Decision -- "Yes" --> A["Helper A goal"]
   Decision -- "Yes" --> B["Helper B goal"]
@@ -141,6 +147,8 @@ flowchart LR
   S --> Review["Review / acceptance"]
   Direct --> Review
   Review --> Report["Final report"]
+  Report --> Main
+  Main --> User
 ```
 
 ## Requirements

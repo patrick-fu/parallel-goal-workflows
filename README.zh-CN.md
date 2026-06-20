@@ -99,7 +99,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Owner["Workflow Owner"] --> A["Worker A goal"]
+  User["用户"] --> Main["Main Agent<br/>会话边界"]
+  Main --> Owner["Workflow Owner<br/>任务 owner"]
+  Owner --> A["Worker A goal"]
   Owner --> B["Worker B goal"]
   Owner --> C["Worker C goal"]
   A --> S["Synthesis goal"]
@@ -109,13 +111,17 @@ flowchart LR
   Decision -- "是" --> Followup["定向补充 goal"]
   Followup --> S
   Decision -- "否" --> Acceptance["验收 / 报告"]
+  Acceptance --> Main
+  Main --> User
 ```
 
 ### 嵌套 Helpers
 
 ```mermaid
 flowchart LR
-  Owner["Workflow Owner"] --> W["Worker goal"]
+  User["用户"] --> Main["Main Agent<br/>会话边界"]
+  Main --> Owner["Workflow Owner<br/>任务 owner"]
+  Owner --> W["Worker goal"]
   W --> Decision{"需要更深层帮助？"}
   Decision -- "是" --> A["Helper A goal"]
   Decision -- "是" --> B["Helper B goal"]
@@ -125,6 +131,8 @@ flowchart LR
   S --> Review["Review / Acceptance"]
   Direct --> Review
   Review --> Report["最终报告"]
+  Report --> Main
+  Main --> User
 ```
 
 ## 使用要求
