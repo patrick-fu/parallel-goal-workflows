@@ -5,7 +5,7 @@
 ![A pencil sketch showing scattered notes becoming a coordinated workflow and final report](assets/workbench-workflow-sketch.webp)
 
 `parallel-goal-workflows` is a guidance skill for complex multi-agent work. It
-helps the main conversation stay clean while a delegated workflow runs through
+helps the main conversation stay clean while delegated workflows run through
 planning, focused execution, review, repair, acceptance, and a concise final
 handoff.
 
@@ -72,9 +72,9 @@ you want to stay directly in the main conversation.
 
 Internally, each agent has a clear job:
 
-- **Main Agent:** stays user-facing, interprets the raw request, turns it into a
-  clear task contract, starts one Workflow Owner, observes progress, and relays
-  the final handoff.
+- **Main Agent:** stays user-facing, interprets each delegated top-level goal,
+  turns it into a clear task contract, starts one Workflow Owner for that goal,
+  tracks active owners, and relays final handoffs.
 - **Workflow Owner:** owns decomposition, execution coordination, review,
   repair, acceptance, and final judgment.
 - **Focused agents or helpers:** own local goals only, work from the task packet
@@ -91,6 +91,9 @@ boundaries, expected deliverable, verification needs, and pause conditions.
 The Main Agent waits on workflow state, not output volume, and steps in only on
 blocked or needs-human signals instead of reclaiming work because a task is
 quiet.
+If a new independent workflow task arrives while another owner is still running,
+the Main Agent starts another Workflow Owner and tracks both until each reaches
+done, blocked, or needs-human.
 
 ## Workflow Shapes
 
