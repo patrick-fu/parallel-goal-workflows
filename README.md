@@ -5,7 +5,7 @@
 ![A pencil sketch showing scattered notes becoming a coordinated workflow and final report](assets/workbench-workflow-sketch.webp)
 
 `parallel-goal-workflows` is a guidance skill for complex multi-agent work. It
-helps the main conversation stay clean while delegated workflows run through
+helps the main conversation stay clean while delegated goals run through
 planning, focused execution, review, repair, acceptance, and a concise final
 handoff.
 
@@ -62,8 +62,8 @@ Good fits include:
 - long-running tasks where intermediate logs would flood the main context;
 - review and repair loops where the final decision matters more than every
   intermediate detail;
-- broad tasks that benefit from multiple focused agents working under one
-  workflow owner.
+- broad tasks that benefit from multiple focused agents working under one goal
+  owner.
 
 Avoid it for quick edits, simple research, ordinary code review, or tasks where
 you want to stay directly in the main conversation.
@@ -73,39 +73,44 @@ you want to stay directly in the main conversation.
 Internally, each agent has a clear job:
 
 - **Main Agent:** stays user-facing, interprets each delegated top-level goal,
-  turns it into a clear task contract, starts one Workflow Owner for that goal,
-  tracks active owners, and relays final handoffs.
-- **Workflow Owner:** owns decomposition, execution coordination, review,
-  repair, acceptance, and final judgment.
-- **Focused agents or helpers:** own local goals only, work from the task packet
-  they receive, and report evidence, verification, risks, or decisions back to
-  the Workflow Owner.
+  turns it into a clean local brief, starts one Goal Owner for that goal, tracks
+  active owners, and relays final handoffs.
+- **Goal Owner:** owns decomposition, execution coordination, review, repair,
+  acceptance, and final judgment.
+- **Focused agents or helpers:** own local goals only, work from the local brief
+  they receive, and return evidence, verification, risks, or decisions for the
+  current assigned goal. Nested helper work must be narrower than its parent
+  task and independently verifiable.
 
 Child agent roles are examples, not a fixed type list. A workflow may use
 workers, reviewers, verifiers, researchers, explorers, implementers, domain
 specialists, or other focused helpers as the task warrants.
 
-The Main Agent and Workflow Owner should send compiled task packets, not raw
-user prompts. Every delegated task should carry a local goal, relevant context,
-boundaries, expected deliverable, verification needs, and pause conditions.
-The Main Agent waits on workflow state, not output volume, and steps in only on
-blocked or needs-human signals instead of reclaiming work because a task is
-quiet.
+The Main Agent and Goal Owner should send natural local briefs, not raw user
+prompts or role-chain contracts. Every delegated task should carry a local goal,
+relevant context, boundaries, expected deliverable, verification needs, and pause
+conditions. Visible briefs should not expose the Main Agent, parent identity,
+`Workflow Owner` role labels, skill triggers, raw transcripts, SKILL.md body
+text, UI-only directives, or the delegation chain that created the assignment.
+
+The Main Agent waits on workflow state, not output volume, and acts on done,
+blocked, needs-human, failed or dead sessions, and explicit user requests
+instead of reclaiming work because a task is quiet.
 If a new independent workflow task arrives while another owner is still running,
-the Main Agent starts another Workflow Owner and tracks both until each reaches
+the Main Agent starts another Goal Owner and tracks both until each reaches
 done, blocked, or needs-human.
 
 ## Workflow Shapes
 
-The Workflow Owner chooses the shape that fits the task. These are examples,
-not scripts.
+The Goal Owner chooses the shape that fits the task. These are examples, not
+scripts.
 
 ### Review And Repair
 
 ```mermaid
 flowchart LR
   User["User"] --> Main["Main Agent<br/>conversation boundary"]
-  Main --> Owner["Workflow Owner<br/>task owner"]
+  Main --> Owner["Goal Owner<br/>task owner"]
   Owner --> Worker["Worker goal"]
   Worker --> Review["Independent review"]
   Review --> Decision{"Good enough?"}
@@ -122,7 +127,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   User["User"] --> Main["Main Agent<br/>conversation boundary"]
-  Main --> Owner["Workflow Owner<br/>task owner"]
+  Main --> Owner["Goal Owner<br/>task owner"]
   Owner --> A["Worker A goal"]
   Owner --> B["Worker B goal"]
   Owner --> C["Worker C goal"]
@@ -142,7 +147,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   User["User"] --> Main["Main Agent<br/>conversation boundary"]
-  Main --> Owner["Workflow Owner<br/>task owner"]
+  Main --> Owner["Goal Owner<br/>task owner"]
   Owner --> W["Worker goal"]
   W --> Decision{"Needs deeper help?"}
   Decision -- "Yes" --> A["Helper A goal"]
@@ -170,6 +175,10 @@ and subagents.
   `agents/openai.yaml` sets `policy.allow_implicit_invocation: false` so Codex
   should not select it implicitly. Codex supports `agents.max_depth` for nested
   spawned agents.
+
+When the host supports history forking, start assigned agents from clean context
+instead of forwarding the full main conversation. For Codex, that means using
+`fork_context: false` when the spawn tool exposes it.
 
 A practical Codex configuration is:
 

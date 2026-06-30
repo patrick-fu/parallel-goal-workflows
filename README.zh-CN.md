@@ -5,7 +5,7 @@
 ![用铅笔素描呈现散乱需求被整理成协作工作流和最终报告](assets/workbench-workflow-sketch.webp)
 
 `parallel-goal-workflows` 是一个面向复杂多 Agent 工作的指导型 Skill。它让主会话保持清爽，
-把复杂任务交给被委派的工作流去完成规划、聚焦执行、review、repair、acceptance 和最终汇报。
+把复杂目标交给被委派的 Goal Owner 去完成规划、聚焦执行、review、repair、acceptance 和最终汇报。
 
 当任务过宽、噪声太多，或者风险较高，不适合由主 Agent 一边协调一边直接执行时，显式调用它。
 
@@ -54,7 +54,7 @@ $parallel-goal-workflows
 - 需要独立 review 的多步骤实现任务；
 - 长时间任务，且中间日志不适合塞进主上下文；
 - review / repair loop 很重要，而你更关心最终判断而不是每个中间细节；
-- 宽泛任务，需要多个聚焦 agent 在一个 workflow owner 下协作。
+- 宽泛任务，需要多个聚焦 agent 在一个 goal owner 下协作。
 
 不适合用于快速小改、简单调研、普通 code review，或你希望主会话直接参与每一步的任务。
 
@@ -62,32 +62,32 @@ $parallel-goal-workflows
 
 内部实现上，每个 Agent 都有清晰职责：
 
-- **Main Agent：** 面向用户，理解每个被委派的顶层目标，把需求转化成清晰的任务合约，为该目标启动一个
-  Workflow Owner，持续追踪 active owners，并转交最终汇报。
-- **Workflow Owner：** 负责拆解、执行协调、review、repair、acceptance 和最终判断。
-- **聚焦 agents 或 helpers：** 只负责局部目标，根据收到的任务包工作，并把证据、验证结果、
-  风险或决策报告给 Workflow Owner。
+- **Main Agent：** 面向用户，理解每个被委派的顶层目标，把需求转化成干净的本地 brief，为该目标启动一个
+  Goal Owner，持续追踪 active owners，并转交最终汇报。
+- **Goal Owner：** 负责拆解、执行协调、review、repair、acceptance 和最终判断。
+- **聚焦 agents 或 helpers：** 只负责局部目标，根据收到的本地 brief 工作，并返回证据、验证结果、
+  风险或决策，供当前被分配目标综合使用。嵌套 helper 的工作必须比父任务更窄，并且可以独立验证。
 
 子 Agent 的角色只是例子，不是固定类型列表。一个工作流可以按需使用 worker、reviewer、
 verifier、researcher、explorer、implementer、领域专家或其他聚焦 helper。
 
-Main Agent 和 Workflow Owner 应该发送整理后的任务包，而不是原样转发用户 prompt。每个被委派出去的
-任务都应该带有局部目标、相关上下文、边界、期望交付物、验证要求和暂停条件。
-Main Agent 等待的是 workflow state，而不是输出量；只有在 blocked 或 needs-human 信号出现时才介入，
-不能因为任务安静就重新接管工作。
-如果等待过程中出现新的独立 workflow 任务，Main Agent 会启动另一个 Workflow Owner，并持续追踪两者，
+Main Agent 和 Goal Owner 应该发送自然的本地 brief，而不是原样转发用户 prompt 或角色链路合约。
+每个被委派出去的任务都应该带有局部目标、相关上下文、边界、期望交付物、验证要求和暂停条件。
+可见 brief 不应该暴露 Main Agent、parent identity、`Workflow Owner` 角色标签、skill trigger、raw transcript、SKILL.md 正文、仅面向 UI 的指令，或创建该任务的派发链路。
+Main Agent 等待的是 workflow state，而不是输出量；它只在 done、blocked、needs-human、session failed/dead 或用户显式要求时行动，不能因为任务安静就重新接管工作。
+如果等待过程中出现新的独立 workflow 任务，Main Agent 会启动另一个 Goal Owner，并持续追踪两者，
 直到每个 owner 都到达 done、blocked 或 needs-human 状态。
 
 ## 工作流形态
 
-Workflow Owner 会根据任务选择合适的形态。下面这些是示例，不是脚本。
+Goal Owner 会根据任务选择合适的形态。下面这些是示例，不是脚本。
 
 ### Review And Repair
 
 ```mermaid
 flowchart LR
   User["用户"] --> Main["Main Agent<br/>会话边界"]
-  Main --> Owner["Workflow Owner<br/>任务 owner"]
+  Main --> Owner["Goal Owner<br/>任务 owner"]
   Owner --> Worker["Worker goal"]
   Worker --> Review["独立 Review"]
   Review --> Decision{"足够好吗？"}
@@ -104,7 +104,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   User["用户"] --> Main["Main Agent<br/>会话边界"]
-  Main --> Owner["Workflow Owner<br/>任务 owner"]
+  Main --> Owner["Goal Owner<br/>任务 owner"]
   Owner --> A["Worker A goal"]
   Owner --> B["Worker B goal"]
   Owner --> C["Worker C goal"]
@@ -124,7 +124,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   User["用户"] --> Main["Main Agent<br/>会话边界"]
-  Main --> Owner["Workflow Owner<br/>任务 owner"]
+  Main --> Owner["Goal Owner<br/>任务 owner"]
   Owner --> W["Worker goal"]
   W --> Decision{"需要更深层帮助？"}
   Decision -- "是" --> A["Helper A goal"]
@@ -149,6 +149,9 @@ flowchart LR
 - **OpenAI Codex:** 使用 `$parallel-goal-workflows` 调用。随附的 `agents/openai.yaml` 设置了
   `policy.allow_implicit_invocation: false`，因此 Codex 不应隐式选择它。Codex 支持通过
   `agents.max_depth` 配置嵌套 spawned agents。
+
+当宿主支持 history fork 时，应从 clean context 启动被分配任务的 agent，而不是转发完整主会话。
+对 Codex 来说，如果 spawn 工具暴露 `fork_context`，就设置为 `false`。
 
 实用的 Codex 配置：
 
